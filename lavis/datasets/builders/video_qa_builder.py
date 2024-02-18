@@ -91,3 +91,8 @@ class QVHBuilder(MCVideoQABuilder):
     }
     
 # open-ended QA
+@registry.register_builder("timos")
+class TiMoSBuilder(MCVideoQABuilder):
+    DATASET_CONFIG_DICT = {
+        "default": "configs/datasets/timos/defaults_qa.yaml"
+    }
