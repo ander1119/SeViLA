@@ -536,7 +536,6 @@ class SeViLA(Blip2Base):
         
         # inference with localizer             
         else:
-            
             b, t, c, w, h = image.shape        
             image = image.reshape(-1, c, w, h)
             with torch.cuda.amp.autocast(enabled=(self.device != torch.device("cpu"))):
@@ -581,7 +580,6 @@ class SeViLA(Blip2Base):
                     max_new_tokens=max_length, min_length=min_length, repetition_penalty=repetition_penalty,
                     length_penalty=length_penalty, num_return_sequences=num_captions,
                     return_dict_in_generate=True, output_hidden_states=True, output_scores=True)
-                        
                 pred_logits_loc = outputs_loc.scores[0]
                 loc_yes = pred_logits_loc[:, self.yes_id]
                 loc_yes = loc_yes.reshape(b, -1)
@@ -672,7 +670,8 @@ class SeViLA(Blip2Base):
                     repetition_penalty=repetition_penalty, length_penalty=length_penalty,
                     num_return_sequences=num_captions, return_dict_in_generate=True,
                     output_hidden_states=True, output_scores=True)
-                pred_logits_qa = outputs_qa.scores[1]
+                # print(outputs_qa)
+                pred_logits_qa = outputs_qa.scores[0]
                 pred_logits_qa = pred_logits_qa[:, self.answer_id] # b, 5
                 pred_ans = torch.argmax(pred_logits_qa, dim=-1).cpu().tolist()
         

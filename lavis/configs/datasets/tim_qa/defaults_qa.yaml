@@ -2,22 +2,21 @@
  # All rights reserved.
  # SPDX-License-Identifier: BSD-3-Clause
  # For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
-
 datasets:
-  timos: # name of the dataset builder
+  tim_qa: # name of the dataset builder
     # data_dir: ${env.data_dir}/datasets
     data_type: videos # [images|videos|features]
     build_info:
       # Be careful not to append minus sign (-) before split to avoid itemizing
       annotations:
         train:
-          url: /tmp2/adnchao/TropeVLM/tropes/trope_qa_with_definition.json
-          storage: /tmp2/adnchao/TropeVLM/tropes/trope_qa_with_definition.json
+          url: /tmp2/adnchao/TropeVLM/tropes/trope_qa_with_definition_subset.json
+          storage: /tmp2/adnchao/TropeVLM/tropes/trope_qa_with_definition_subset.json
         val:
-          url: /tmp2/adnchao/TropeVLM/tropes/trope_qa_with_definition.json
-          storage: /tmp2/adnchao/TropeVLM/tropes/trope_qa_with_definition.json
+          url: /tmp2/adnchao/TropeVLM/tropes/trope_qa_with_definition_subset.json
+          storage: /tmp2/adnchao/TropeVLM/tropes/trope_qa_with_definition_subset.json
         test:
-          url: /tmp2/adnchao/TropeVLM/tropes/trope_qa_with_definition.json
-          storage: /tmp2/adnchao/TropeVLM/tropes/trope_qa_with_definition.json
+          url: /tmp2/adnchao/TropeVLM/tropes/trope_qa_with_definition_subset.json
+          storage: /tmp2/adnchao/TropeVLM/tropes/trope_qa_with_definition_subset.json
       videos:
         storage: /project/mira/dataset/MovieNet/videos/

@@ -19,6 +19,8 @@ from lavis.common.vqa_tools.vqa_eval import VQAEval
 from lavis.tasks.base_task import BaseTask
 from lavis.common.dist_utils import main_process
 
+from sklearn.metrics import precision_recall_fscore_support
+
 @registry.register_task("vqa")
 class VQATask(BaseTask):
     def __init__(
@@ -413,7 +415,6 @@ class FrameQA(BaseTask):
 
         logging.info(metrics)
         return metrics
-    
 
 @registry.register_task("videoqa")
 class VideoQA(BaseTask):
@@ -504,7 +505,44 @@ class VideoQA(BaseTask):
         logging.info(metrics)
         return metrics
     
+@registry.register_task("tim_bc")
+class TiMBC(VideoQA):
+    def __init__(self):
+        super().__init__()
     
+    @main_process
+    def _report_metrics(self, eval_result_file, split_name):
+        results = json.load(open(eval_result_file))
+        total_num = len(results)
+        acc = 0
+        predictions = []
+        answers = []
+        for r in results:    
+            if r['prediction'] == r['target']:
+                acc += 1
+            predictions.append(r['prediction'])
+            answers.append(r['target'])
+                
+        f1 = precision_recall_fscore_support(answers, predictions, average='binary')
+
+        metrics = {
+            "agg_metrics": acc / total_num, 
+            'total':total_num,
+            'precision': f1[0],
+            'recall': f1[1],
+            'f1': f1[2]
+        }
+
+        log_stats = {split_name: {k: v for k, v in metrics.items()}}
+
+        with open(
+            os.path.join(registry.get_path("output_dir"), "evaluate.txt"), "a"
+        ) as f:
+            f.write(json.dumps(log_stats) + "\n")
+
+        logging.info(metrics)
+        return metrics
+
 @registry.register_task("moment_retrieval")
 class MR(BaseTask):
     def __init__(self):

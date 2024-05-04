@@ -11,12 +11,12 @@ model:
   use_grad_checkpoint: False
   freeze_vit: True
   frame_num: 8
-  answer_num: 5
+  answer_num: 2
   task: freeze_qa_vid
   qformer_input_text: False
 
 datasets:
-  timos: 
+  tim_bc: 
     vis_processor:
         eval:
           name: "blip_video_eval"
@@ -28,7 +28,7 @@ datasets:
           max_words: 50
 
 run:
-  task: timos
+  task: tim_bc
   # optimizer
   lr_sched: "linear_warmup_cosine_lr"
   init_lr: 1e-5
