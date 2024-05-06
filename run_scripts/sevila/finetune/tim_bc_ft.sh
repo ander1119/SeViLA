@@ -1,9 +1,9 @@
 # parameters
 result_dir="outputs/"
 
-exp_name='tim_bc_ft'
+exp_name='tim_bc_ft_train_with_excluded_tropes'
 ckpt='sevila_checkpoints/sevila_pretrained.pth'
-CUDA_VISIBLE_DEVICES=3,4 python -m torch.distributed.run --nproc_per_node=2 train.py \
+CUDA_VISIBLE_DEVICES=0,4 python -m torch.distributed.run --nproc_per_node=2 train.py \
 --cfg-path lavis/projects/sevila/train/tim_bc.yaml \
 --options run.output_dir=${result_dir}${exp_name} \
 model.frame_num=16 \

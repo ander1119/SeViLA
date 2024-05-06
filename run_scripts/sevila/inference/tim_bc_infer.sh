@@ -1,10 +1,11 @@
 # parameters/data path
 result_dir="outputs/"
 
-exp_name='bc_with_definition_120_16'
+exp_name='bc_with_definition_120_16_ft_epoch6'
 # exp_name='test'
-ckpt='sevila_checkpoints/sevila_pretrained.pth'
-CUDA_VISIBLE_DEVICES=2 python evaluate.py \
+# ckpt='sevila_checkpoints/sevila_pretrained.pth'
+ckpt='/tmp2/adnchao/TropeVLM/SeViLA/lavis/outputs/tim_bc_ft/checkpoint_best.pth'
+CUDA_VISIBLE_DEVICES=4 python evaluate.py \
 --cfg-path lavis/projects/sevila/eval/tim_bc_eval.yaml \
 --options run.output_dir=${result_dir}${exp_name} \
 model.frame_num=16 \
