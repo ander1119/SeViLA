@@ -1,14 +1,15 @@
 # parameters
 result_dir="outputs/"
 
-exp_name='tim_bc_ft_train_with_excluded_tropes'
+exp_name='tim_bc_ft_240_32_train_one_pos_one_neg_eval_20_trope_20_movie'
+# exp_name='tim_bc_ft_train_20_tropes_on_diff_20_movie_eval_20_trope_20_movie'
 ckpt='sevila_checkpoints/sevila_pretrained.pth'
-CUDA_VISIBLE_DEVICES=0,4 python -m torch.distributed.run --nproc_per_node=2 train.py \
+CUDA_VISIBLE_DEVICES=0,1,2 python -m torch.distributed.run --nproc_per_node=3 train.py \
 --cfg-path lavis/projects/sevila/train/tim_bc.yaml \
 --options run.output_dir=${result_dir}${exp_name} \
-model.frame_num=16 \
-datasets.tim_bc.vis_processor.train.n_frms=120 \
-datasets.tim_bc.vis_processor.eval.n_frms=120 \
+model.frame_num=32 \
+datasets.tim_bc.vis_processor.train.n_frms=180 \
+datasets.tim_bc.vis_processor.eval.n_frms=180 \
 run.batch_size_train=1 \
 run.batch_size_eval=1 \
 run.init_lr=3e-5 \
