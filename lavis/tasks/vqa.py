@@ -520,13 +520,14 @@ class TiMBC(VideoQA):
         for r in results:    
             if r['prediction'] == r['target']:
                 acc += 1
-            predictions.append(r['prediction'])
-            answers.append(r['target'])
+            predictions.append(1 if r['prediction'] == 0 else 0)
+            answers.append(1 if r['target'] == 0 else 0)
                 
         f1 = precision_recall_fscore_support(answers, predictions, average='binary')
 
         metrics = {
-            "agg_metrics": acc / total_num, 
+            "agg_metrics": f1[2], 
+            "accuracy": acc / total_num,
             'total':total_num,
             'precision': f1[0],
             'recall': f1[1],
