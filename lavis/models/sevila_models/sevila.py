@@ -545,7 +545,10 @@ class SeViLA(Blip2Base):
             image_atts = torch.ones(image_embeds.size()[:-1], dtype=torch.long).to(image.device) # bt n c
             image_embeds_, image_atts_ = image_embeds.detach().clone(), image_atts.detach().clone()
             image_embeds_ = self.ln_vision_loc(image_embeds_)
-            
+
+            del image_atts
+            torch.cuda.empty_cache()
+
             text_input_loc = samples['loc_input'] # Q + Prompt: Is this a good frame can answer the question?
             query_tokens_loc = self.query_tokens_loc.expand(image_embeds_.shape[0], -1, -1)
             query_output_loc = self.Qformer_loc.bert(
@@ -563,6 +566,10 @@ class SeViLA(Blip2Base):
                 frame_prefix_id = torch.repeat_interleave(frame_prefix.input_ids, b*t, 0)
                 frame_prefix_mask = torch.repeat_interleave(frame_prefix.attention_mask, b*t, 0)
                 frame_predix_embed = self.t5_model.encoder.embed_tokens(frame_prefix_id)
+
+                del frame_prefix_id
+                torch.cuda.empty_cache()
+
                 input_tokens_loc = self.t5_tokenizer(
                     text_input_loc, padding="longest", truncation=True,
                     max_length=self.max_txt_len, return_tensors="pt").to(image.device)
@@ -574,13 +581,21 @@ class SeViLA(Blip2Base):
                 inputs_embeds_loc = torch.cat([frame_predix_embed, inputs_t5_loc, inputs_embeds_loc], dim=1)
                 encoder_atts_loc = torch.cat([frame_prefix_mask, atts_t5_loc, input_attention_mask_loc], dim=1)
     
+                del frame_prefix_mask, frame_predix_embed, input_tokens_loc, input_ids_loc, input_attention_mask_loc
+                torch.cuda.empty_cache()
+
                 outputs_loc = self.t5_model.generate(
                     inputs_embeds=inputs_embeds_loc, attention_mask=encoder_atts_loc,
                     do_sample=use_nucleus_sampling, top_p=top_p, temperature=temperature, num_beams=1,
                     max_new_tokens=max_length, min_length=min_length, repetition_penalty=repetition_penalty,
                     length_penalty=length_penalty, num_return_sequences=num_captions,
                     return_dict_in_generate=True, output_hidden_states=True, output_scores=True)
+                
                 pred_logits_loc = outputs_loc.scores[0]
+
+                del inputs_embeds_loc, encoder_atts_loc, outputs_loc
+                torch.cuda.empty_cache()
+
                 loc_yes = pred_logits_loc[:, self.yes_id]
                 loc_yes = loc_yes.reshape(b, -1)
                 if 'qa_vid' in self.task:
@@ -606,6 +621,8 @@ class SeViLA(Blip2Base):
                     query_output_qa = self.Qformer.bert(
                         query_embeds=query_tokens_qa, encoder_hidden_states=select_frames,
                         encoder_attention_mask=image_atts, return_dict=True)
+                    torch.cuda.empty_cache()
+
                     inputs_t5_qa = self.t5_proj(query_output_qa.last_hidden_state)
                     inputs_t5_qa = inputs_t5_qa.reshape(b, -1, inputs_t5_qa.shape[-2], inputs_t5_qa.shape[-1])
                     atts_t5_qa = torch.ones(inputs_t5_qa.size()[:-1], dtype=torch.long).to(image.device)
@@ -613,6 +630,8 @@ class SeViLA(Blip2Base):
                     vid_prefix = self.t5_tokenizer(
                         self.vid_prefix, padding="longest", add_special_tokens=False,
                         truncation=True, max_length=self.max_txt_len, return_tensors="pt",).to(image.device) # 
+                    torch.cuda.empty_cache()
+
                     vid_prefix_id = torch.repeat_interleave(vid_prefix.input_ids.unsqueeze(0), b, 0)
                     vid_prefix_mask = torch.repeat_interleave(vid_prefix.attention_mask.unsqueeze(0), b, 0)
                     vid_prefix_embed = self.t5_model.encoder.embed_tokens(vid_prefix_id) # b t n_word c
@@ -625,6 +644,8 @@ class SeViLA(Blip2Base):
                     input_tokens_qa = self.t5_tokenizer(
                         text_input_qa, padding="longest", truncation=True,
                         max_length=self.max_txt_len, return_tensors="pt").to(image.device)
+                    torch.cuda.empty_cache()
+
                     inputs_embeds_qa = self.t5_model.encoder.embed_tokens(input_tokens_qa.input_ids) 
                     inputs_embeds_qa = torch.cat([inputs_t5_qa, inputs_embeds_qa], dim=1)
                     encoder_atts_qa = torch.cat([atts_t5_qa, input_tokens_qa.attention_mask], dim=1)
@@ -670,6 +691,8 @@ class SeViLA(Blip2Base):
                     repetition_penalty=repetition_penalty, length_penalty=length_penalty,
                     num_return_sequences=num_captions, return_dict_in_generate=True,
                     output_hidden_states=True, output_scores=True)
+                
+                torch.cuda.empty_cache()
                 # print(outputs_qa)
                 pred_logits_qa = outputs_qa.scores[0]
                 pred_logits_qa = pred_logits_qa[:, self.answer_id] # b, 5
@@ -683,6 +706,9 @@ class SeViLA(Blip2Base):
         else:
             out['answer'] = answer
             out['qid'] = qid
+
+        del image, image_embeds, image_atts, query_tokens_qa, query_output_qa, inputs_t5_qa, input_tokens_qa, inputs_embeds_qa, encoder_atts_qa
+        torch.cuda.empty_cache()
 
         return out
     

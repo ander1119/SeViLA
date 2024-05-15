@@ -152,6 +152,33 @@ def prepare_sample(samples, cuda_enabled=True):
 
     return samples
 
+def apply_to_sample_moveout(f, sample):
+    if len(sample) == 0:
+        return {}
+
+    def _apply(x):
+        if torch.is_tensor(x) and x.is_cuda:
+            return f(x)
+        elif isinstance(x, dict):
+            return {key: _apply(value) for key, value in x.items()}
+        elif isinstance(x, list):
+            return [_apply(x) for x in x]
+        else:
+            return x
+
+    return _apply(sample)
+
+def moveout_from_cuda(sample):
+    def _moveout_from_cuda(tensor):
+        del tensor
+
+    return apply_to_sample(_moveout_from_cuda, sample)
+
+def release_sample(samples, cuda_enabled=True):
+    if cuda_enabled:
+        samples = moveout_from_cuda(samples)
+        torch.cuda.empty_cache()
+
 
 def reorg_datasets_by_split(datasets):
     """
