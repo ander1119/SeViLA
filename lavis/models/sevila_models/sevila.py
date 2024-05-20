@@ -67,7 +67,7 @@ class SeViLA(Blip2Base):
         # freeze T5
         for name, param in self.t5_model.named_parameters():
             param.requires_grad = False
-            param.data = param.data.bfloat16() 
+            param.data = param.data.float() 
 
         # Q-Former for Answerer
         self.Qformer, self.query_tokens = self.init_Qformer(

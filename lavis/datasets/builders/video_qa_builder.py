@@ -99,5 +99,10 @@ class TiMQABuilder(MCVideoQABuilder):
 @registry.register_builder("tim_bc")
 class TiMBCBuilder(MCVideoQABuilder):
     DATASET_CONFIG_DICT = {
-        "default": "configs/datasets/tim_bc/defaults_bc.yaml"
+        "default": "configs/datasets/tim_bc/defaults_bc.yaml",
+        "5_fold_1": "configs/datasets/tim_bc/5_fold_1.yaml",
+        "5_fold_2": "configs/datasets/tim_bc/5_fold_2.yaml",
+        "5_fold_3": "configs/datasets/tim_bc/5_fold_3.yaml",
+        "5_fold_4": "configs/datasets/tim_bc/5_fold_4.yaml",
+        "5_fold_5": "configs/datasets/tim_bc/5_fold_5.yaml",
     }

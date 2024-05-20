@@ -66,7 +66,7 @@ class Blip2FMR(Blip2Base):
         # Freeze T5
         for name, param in self.t5_model.named_parameters():
             param.requires_grad = False
-            param.data = param.data.bfloat16() 
+            param.data = param.data.float() 
         
         # Q-Former for Frame Localization
         self.Qformer_loc, self.query_tokens_loc = self.init_Qformer(
