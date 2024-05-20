@@ -7,6 +7,7 @@
 import logging
 
 import copy
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.cuda.amp import autocast as autocast
@@ -573,15 +574,39 @@ class SeViLA(Blip2Base):
                 input_tokens_loc = self.t5_tokenizer(
                     text_input_loc, padding="longest", truncation=True,
                     max_length=self.max_txt_len, return_tensors="pt").to(image.device)
-                #print('input_ids_loc.input_ids', input_tokens_loc.input_ids)
+                
+                # samples['subtitle'] in (t, b)
+                # text_input_loc in (b)
+                subtitles = np.array(samples['subtitle']).T.tolist() # (b, t)
+                concat_text_input = []
+                for i in range(b):
+                    concat_text_input += [subtitle + text_input_loc[i] for subtitle in subtitles[i]]
+                subtitle_tokens_loc = self.t5_tokenizer(
+                    concat_text_input, padding="longest", truncation=True,
+                    max_length=self.max_txt_len, return_tensors="pt").to(image.device)
+                # subtitle_id_loc = torch.cat([subtitle.input_ids for subtitle in subtitle_tokens_loc], dim=0)
+                subtitle_ids_loc = subtitle_tokens_loc.input_ids # bt, n_word
+                subtitle_attention_mask_loc = subtitle_tokens_loc.attention_mask # bt, n_word
+                subtitle_embeds_loc = self.t5_model.encoder.embed_tokens(subtitle_ids_loc) # bt, n_word, c
+
                 input_ids_loc = torch.repeat_interleave(input_tokens_loc.input_ids, t, 0)
-                #print('input_ids_loc', input_ids_loc)
                 input_attention_mask_loc = torch.repeat_interleave(input_tokens_loc.attention_mask, t, 0)
-                inputs_embeds_loc = self.t5_model.encoder.embed_tokens(input_ids_loc)              
-                inputs_embeds_loc = torch.cat([frame_predix_embed, inputs_t5_loc, inputs_embeds_loc], dim=1)
-                encoder_atts_loc = torch.cat([frame_prefix_mask, atts_t5_loc, input_attention_mask_loc], dim=1)
+                inputs_embeds_loc = self.t5_model.encoder.embed_tokens(input_ids_loc)   
+                # print('frame_predix_embed: ', frame_predix_embed.shape)
+                # print('inputs_t5_loc: ', inputs_t5_loc.shape)
+                # print('subtitle_embeds_loc: ', subtitle_embeds_loc.shape)
+                # print('inputs_embeds_loc: ', inputs_embeds_loc.shape)
+
+                # print('frame_prefix_mask: ', frame_prefix_mask.shape)
+                # print('atts_t5_loc: ', atts_t5_loc.shape)
+                # print('subtitle_attention_mask_loc: ', subtitle_attention_mask_loc.shape)
+                # print('subtitle_ids_loc: ', subtitle_ids_loc.shape)
+                inputs_embeds_loc = torch.cat([frame_predix_embed, inputs_t5_loc, subtitle_embeds_loc, inputs_embeds_loc], dim=1)
+                encoder_atts_loc = torch.cat([frame_prefix_mask, atts_t5_loc, subtitle_attention_mask_loc, input_attention_mask_loc], dim=1)
     
-                del frame_prefix_mask, frame_predix_embed, input_tokens_loc, input_ids_loc, input_attention_mask_loc
+                del frame_prefix_mask, frame_predix_embed
+                del input_tokens_loc, input_ids_loc, input_attention_mask_loc
+                del subtitle_ids_loc, subtitle_attention_mask_loc, subtitle_embeds_loc
                 torch.cuda.empty_cache()
 
                 outputs_loc = self.t5_model.generate(
@@ -606,15 +631,19 @@ class SeViLA(Blip2Base):
                     for frames in select_frames_idx:
                         sorted_frames_idx.append(sorted(frames))
                     out['frame_idx'] = sorted_frames_idx
-                    select_frames = []
+                    select_frames = [] # b, n_answer_frame, n, -1
+                    select_subtitles = [] # b, n_answer_frame
                     for i, fs in enumerate(sorted_frames_idx): 
                         video = []
+                        subtitle_on_video = []
                         for j, f in enumerate(fs):
                             video.append(image_embeds[i][f])
+                            subtitle_on_video.append(subtitles[i][f])
                         video = torch.stack(video, dim=0)
                         select_frames.append(video)
+                        select_subtitles.append(subtitle_on_video)
                     
-                    select_frames = torch.stack(select_frames, dim=0) # b 4, n , -1
+                    select_frames = torch.stack(select_frames, dim=0) # b, n_answer_frame, n , -1
                     select_frames = select_frames.reshape(-1, select_frames.shape[-2], select_frames.shape[-1])
                     image_atts = torch.ones(select_frames.size()[:-1], dtype=torch.long).to(image.device) # bt n c
                     query_tokens_qa = self.query_tokens.expand(select_frames.shape[0], -1, -1)
@@ -627,17 +656,25 @@ class SeViLA(Blip2Base):
                     inputs_t5_qa = inputs_t5_qa.reshape(b, -1, inputs_t5_qa.shape[-2], inputs_t5_qa.shape[-1])
                     atts_t5_qa = torch.ones(inputs_t5_qa.size()[:-1], dtype=torch.long).to(image.device)
                     
+                    concat_text_input = [] # b * n_answer_frame
+                    for i in range(b):
+                        concat_text_input += select_subtitles[i]
+                    subtitle_tokens_qa = self.t5_tokenizer(
+                        concat_text_input, padding="longest", truncation=True,
+                        max_length=self.max_txt_len, return_tensors="pt").to(image.device)
+                    subtitle_ids_qa = subtitle_tokens_qa.input_ids.reshape(b, self.frame_num, -1) # b, t, n_word
+                    subtitle_attention_mask_qa = subtitle_tokens_qa.attention_mask.reshape(b, self.frame_num, -1) # b, t, n_word
+                    subtitle_embeds_qa = self.t5_model.encoder.embed_tokens(subtitle_ids_qa) # b, t, n_word, c
+                    
                     vid_prefix = self.t5_tokenizer(
                         self.vid_prefix, padding="longest", add_special_tokens=False,
                         truncation=True, max_length=self.max_txt_len, return_tensors="pt",).to(image.device) # 
-                    torch.cuda.empty_cache()
-
                     vid_prefix_id = torch.repeat_interleave(vid_prefix.input_ids.unsqueeze(0), b, 0)
                     vid_prefix_mask = torch.repeat_interleave(vid_prefix.attention_mask.unsqueeze(0), b, 0)
                     vid_prefix_embed = self.t5_model.encoder.embed_tokens(vid_prefix_id) # b t n_word c
                     
-                    inputs_t5_qa = torch.cat([vid_prefix_embed, inputs_t5_qa], dim=2) # b, t, n_word + m, c
-                    atts_t5_qa = torch.cat([vid_prefix_mask, atts_t5_qa], dim=2) # b, t, n_word + m 
+                    inputs_t5_qa = torch.cat([vid_prefix_embed, inputs_t5_qa, subtitle_embeds_qa], dim=2) # b, t, n_word + m, c
+                    atts_t5_qa = torch.cat([vid_prefix_mask, atts_t5_qa, subtitle_attention_mask_qa], dim=2) # b, t, n_word + m 
                     inputs_t5_qa = inputs_t5_qa.reshape(b, -1, inputs_t5_qa.shape[-1])
                     atts_t5_qa = atts_t5_qa.reshape(b, -1)
                     

@@ -10,7 +10,7 @@ from lavis.common.utils import get_cache_path
 from lavis.datasets.builders.base_dataset_builder import BaseDatasetBuilder
 from lavis.datasets.datasets.video_vqa_datasets import VideoQADataset
 from lavis.datasets.datasets.mc_video_vqa_datasets import MCVideoQADataset
-
+from lavis.datasets.datasets.tim_video_vqa_datasets import TiMBCVideoQADataset
 class VideoQABuilder(BaseDatasetBuilder):
     train_dataset_cls = VideoQADataset
     eval_dataset_cls = VideoQADataset
@@ -40,6 +40,24 @@ class MCVideoQABuilder(BaseDatasetBuilder):
             datasets[split]._load_auxiliary_mappings()
 
         return datasets
+    
+@registry.register_builder("mm_tim_bc")
+class MultiModalityTiMBCBuilder(BaseDatasetBuilder):
+    train_dataset_cls = TiMBCVideoQADataset
+    eval_dataset_cls = TiMBCVideoQADataset
+
+    DATASET_CONFIG_DICT = {
+        "default": "configs/datasets/tim_bc/multi_modality.yaml"
+    }
+
+    def build(self):
+        datasets = super().build()
+
+        for split in datasets:
+            datasets[split]._load_auxiliary_mappings(self.config.build_info)
+
+        return datasets
+
 
 @registry.register_builder("msrvtt_qa")
 class MSRVTTQABuilder(VideoQABuilder):
