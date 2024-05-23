@@ -47,7 +47,12 @@ class MultiModalityTiMBCBuilder(BaseDatasetBuilder):
     eval_dataset_cls = TiMBCVideoQADataset
 
     DATASET_CONFIG_DICT = {
-        "default": "configs/datasets/tim_bc/multi_modality.yaml"
+        "default": "configs/datasets/tim_bc/multi_modality.yaml",
+        "split1": "configs/datasets/tim_bc/multi_modality_split1.yaml",
+        "split1_1": "configs/datasets/tim_bc/multi_modality_split1_1.yaml",
+        "split1_2": "configs/datasets/tim_bc/multi_modality_split1_2.yaml",
+        "split2": "configs/datasets/tim_bc/multi_modality_split2.yaml",
+        "5_fold_1": "configs/datasets/tim_bc/mm_5_fold_1.yaml",
     }
 
     def build(self):
