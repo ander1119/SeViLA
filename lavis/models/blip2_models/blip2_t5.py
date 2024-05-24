@@ -84,7 +84,7 @@ class Blip2T5(Blip2Base):
 
         for name, param in self.t5_model.named_parameters():
             param.requires_grad = False
-            param.data = param.data.float()
+            param.data = param.data.bfloat16()
 
         self.t5_proj = nn.Linear(
             self.Qformer.config.hidden_size, self.t5_model.config.hidden_size
@@ -114,7 +114,7 @@ class Blip2T5(Blip2Base):
         inputs_t5 = self.t5_proj(query_output.last_hidden_state)
         atts_t5 = torch.ones(inputs_t5.size()[:-1], dtype=torch.long).to(image.device)
 
-        with torch.cuda.amp.autocast(dtype=torch.float32):
+        with torch.cuda.amp.autocast(dtype=torch.bfloat16):
             input_tokens = self.t5_tokenizer(
                 samples["text_input"],
                 padding="longest",
@@ -227,7 +227,7 @@ class Blip2T5(Blip2Base):
         encoder_atts = torch.cat([atts_t5, input_tokens.attention_mask], dim=1)
 
         device_type = "cuda" if "cuda" in str(self.device) else "cpu"
-        with torch.amp.autocast(device_type=device_type, dtype=torch.float32):
+        with torch.amp.autocast(device_type=device_type, dtype=torch.bfloat16):
             inputs_embeds = self.t5_model.encoder.embed_tokens(input_tokens.input_ids)
             inputs_embeds = torch.cat([inputs_t5, inputs_embeds], dim=1)
 
@@ -304,7 +304,7 @@ class Blip2T5(Blip2Base):
         encoder_atts = torch.cat([atts_t5, input_tokens.attention_mask], dim=1)
 
         device_type = "cuda" if "cuda" in str(self.device) else "cpu"
-        with torch.amp.autocast(device_type=device_type, dtype=torch.float32):
+        with torch.amp.autocast(device_type=device_type, dtype=torch.bfloat16):
             inputs_embeds = self.t5_model.encoder.embed_tokens(input_tokens.input_ids)
             inputs_embeds = torch.cat([inputs_t5, inputs_embeds], dim=1)
 

@@ -206,7 +206,7 @@ class Blip2FMR(Blip2Base):
         inputs_t5 = self.t5_proj_loc(query_output.last_hidden_state)
         atts_t5 = torch.ones(inputs_t5.size()[:-1], dtype=torch.long).to(image.device) 
             
-        with torch.cuda.amp.autocast(dtype=torch.float32):
+        with torch.cuda.amp.autocast(dtype=torch.bfloat16):
             
             frame_prefix = self.t5_tokenizer(
                 self.frame_prefix, padding="longest", add_special_tokens=False,
@@ -298,7 +298,7 @@ class Blip2FMR(Blip2Base):
         encoder_atts = torch.cat([atts_t5, input_tokens.attention_mask], dim=1)
 
         device_type = "cuda" if "cuda" in str(self.device) else "cpu"
-        with torch.amp.autocast(device_type=device_type, dtype=torch.float32):
+        with torch.amp.autocast(device_type=device_type, dtype=torch.bfloat16):
             inputs_embeds = self.t5_model.encoder.embed_tokens(input_tokens.input_ids)
             inputs_embeds = torch.cat([inputs_t5, inputs_embeds], dim=1)
 

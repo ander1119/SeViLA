@@ -3,7 +3,7 @@ result_dir="outputs/"
 
 exp_name='mm_tim_ft_fullset_5_fold_1'
 ckpt='sevila_checkpoints/sevila_pretrained.pth'
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python -m torch.distributed.run --nproc_per_node=8 train.py \
+CUDA_VISIBLE_DEVICES=1,2 python -m torch.distributed.run --nproc_per_node=2 train.py \
 --cfg-path lavis/projects/sevila/train/mm_tim_bc_ft_5_fold_1.yaml \
 --options run.output_dir=${result_dir}${exp_name} \
 model.frame_num=16 \
